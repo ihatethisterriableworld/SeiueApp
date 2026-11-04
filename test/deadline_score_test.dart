@@ -4,7 +4,7 @@ import 'package:seiue_mac/todos.dart';
 
 void main() {
   GradeReport report(String score, String maximum) => GradeReport(
-    score: score, fullScore: maximum, status: 'published', entries: [],
+    score: score, fullScore: maximum, status: 'published', entries: [GradeEntry(id: 'one', name: 'Test', score: score, fullScore: maximum)],
   );
 
   test('score rates handle zero, missing, textual and bonus scores', () {
@@ -15,6 +15,23 @@ void main() {
         ('1', '-10'), ('NaN', '100'), ('1', 'Infinity')]) {
       expect(report(pair.$1, pair.$2).currentScoreRate, isNull);
     }
+  });
+
+  test('current maximum excludes ungraded items and scales nested weights', () {
+    final report = GradeReport.fromJson({
+      'full_score': 100,
+      'grade': {'student_real_score': 19.7},
+      'items': [
+        {'id': 'category', 'pid': 'root', 'full_score': 30},
+        {'id': 'graded', 'pid': 'category', 'full_score': 70},
+        {'id': 'future', 'pid': 'category', 'full_score': 30},
+        {'id': 'later', 'pid': 'root', 'full_score': 70},
+      ],
+    }, [{'item_id': 'graded', 'score': 65.6667}]);
+    expect(report.currentMaximumScore, 21);
+    expect(report.currentScoreRateText, '93.81%');
+    expect(const GradeReport(score: '0', fullScore: '100', status: '', entries: []).currentScoreRate, isNull);
+    expect(GradeReport.fromJson({'items': [{'id': 'zero', 'full_score': 10}]}, [{'item_id': 'zero', 'score': 0}]).currentMaximumScore, 10);
   });
 
   test('deadline buckets include their boundaries without gaps', () {

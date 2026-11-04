@@ -82,14 +82,53 @@ class GradeReport {
   });
   final String score, fullScore, status, level, review;
   final List<GradeEntry> entries;
-  /// The published current score divided by its maximum, without summing
-  /// hierarchical entries (which would count category scores twice).
-  double? get currentScoreRate {
-    final earned = double.tryParse(score), maximum = double.tryParse(fullScore);
-    if (earned == null || maximum == null || !earned.isFinite ||
-        !maximum.isFinite || maximum <= 0) {
-      return null;
+  /// Maximum currently attainable in the same weighted units as total score.
+  /// Only numeric, graded leaves contribute; group totals are never added to
+  /// their descendants. A category budget scales its child score ranges.
+  double? get currentMaximumScore {
+    double? numeric(String text) {
+      final value = double.tryParse(text);
+      return value != null && value.isFinite ? value : null;
     }
+    final byId = {for (final entry in entries) entry.id: entry};
+    final visiting = <String>{};
+    ({double total, double graded})? range(GradeEntry entry) {
+      if (!visiting.add(entry.id)) return null;
+      final children = entries.where((e) => e.parentId == entry.id).toList();
+      final maximum = numeric(entry.fullScore);
+      if (children.isEmpty) {
+        visiting.remove(entry.id);
+        if (maximum == null || maximum < 0) return null;
+        return (total: maximum, graded: numeric(entry.score) == null ? 0.0 : maximum);
+      }
+      var total = 0.0, graded = 0.0;
+      for (final child in children) {
+        final result = range(child);
+        if (result == null) { visiting.remove(entry.id); return null; }
+        total += result.total;
+        graded += result.graded;
+      }
+      visiting.remove(entry.id);
+      if (maximum != null && maximum >= 0 && total > 0) {
+        return (total: maximum, graded: graded / total * maximum);
+      }
+      return (total: total, graded: graded);
+    }
+    if (entries.isEmpty) return null;
+    var maximum = 0.0;
+    final roots = entries.where((e) => !byId.containsKey(e.parentId)).toList();
+    if (roots.isEmpty) return null;
+    for (final root in roots) {
+      final result = range(root);
+      if (result == null) return null;
+      maximum += result.graded;
+    }
+    return maximum > 0 ? maximum : null;
+  }
+
+  double? get currentScoreRate {
+    final earned = double.tryParse(score), maximum = currentMaximumScore;
+    if (earned == null || !earned.isFinite || maximum == null) return null;
     return earned / maximum * 100;
   }
   String get currentScoreRateText => currentScoreRate == null

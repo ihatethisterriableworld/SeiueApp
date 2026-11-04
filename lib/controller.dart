@@ -104,16 +104,23 @@ class CampusController extends ChangeNotifier with WidgetsBindingObserver {
     final auth = _authGeneration, generation = ++_todosGeneration;
     todosLoading = true;
     todosError = null;
+    todos = [];
     _emit();
     try {
       final tasks = <String, SubjectTask>{};
-      var page = 1;
-      while (true) {
-        final result = await api.subjectTasks(null, page: page);
-        if (!_current(auth) || generation != _todosGeneration) return;
-        for (final task in result.items) { tasks[task.id] = task; }
-        if (!result.hasMore) break;
-        page++;
+      // The subjects endpoint is scoped to the current semester. Never fetch
+      // the unfiltered personal task history, which includes previous years.
+      final currentSubjects = await api.subjects();
+      if (!_current(auth) || generation != _todosGeneration) return;
+      for (final subject in currentSubjects) {
+        var page = 1;
+        while (true) {
+          final result = await api.subjectTasks(subject, page: page);
+          if (!_current(auth) || generation != _todosGeneration) return;
+          for (final task in result.items) { tasks[task.id] = task; }
+          if (!result.hasMore) break;
+          page++;
+        }
       }
       todos = tasks.values.where((task) => !task.isCompleted).toList();
     } catch (error) {
