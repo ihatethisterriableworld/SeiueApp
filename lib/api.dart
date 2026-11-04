@@ -21,7 +21,7 @@ class SeiueApi {
       _now = now ?? DateTime.now {
     _client.connectionTimeout = const Duration(seconds: 20);
     _client.userAgent =
-        'SeiueDesktop/0.4.1 (${Platform.operatingSystem}; Flutter)';
+        'SeiueDesktop/0.4.2 (${Platform.operatingSystem}; Flutter)';
   }
   final HttpClient _client;
   final DateTime Function() _now;

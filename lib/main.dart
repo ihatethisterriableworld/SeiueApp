@@ -793,7 +793,7 @@ class _CampusShellState extends State<CampusShell> {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${c.mac.appName}  ·  0.4.1',
+                    '${c.mac.appName}  ·  0.4.2',
                     style: TextStyle(fontSize: 10, color: p.muted),
                   ),
                 ],

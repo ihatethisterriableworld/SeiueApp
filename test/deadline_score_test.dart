@@ -36,7 +36,9 @@ void main() {
 
   test('deadline buckets include their boundaries without gaps', () {
     final now = DateTime(2026, 11, 4, 10);
-    expect(deadlineBucket(now.subtract(const Duration(days: 1)), now), 0);
+    expect(deadlineBucket(now.subtract(const Duration(days: 1)), now), 5);
+    expect(deadlineBucket(now.subtract(const Duration(microseconds: 1)), now), 5);
+    expect(deadlineBucket(now, now), 0);
     expect(deadlineBucket(now.add(const Duration(hours: 6)), now), 0);
     expect(deadlineBucket(now.add(const Duration(hours: 6, seconds: 1)), now), 1);
     expect(deadlineBucket(DateTime(2026, 11, 4, 23, 59), now), 1);

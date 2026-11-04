@@ -495,7 +495,7 @@ class _Grades extends StatelessWidget {
                 ],
               ),
               Tooltip(
-                message: '当前得分 ÷ 总分 × 100%；缺少数值或总分为零时不计算',
+                message: '当前得分 ÷ 已评分项目的可得满分 × 100%；按评价层级折算权重，未评分项目不计入',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -503,6 +503,9 @@ class _Grades extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(report.currentScoreRateText,
                         style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+                    if (report.currentMaximumScore != null)
+                      Text('当前可得满分 ${numberText(report.currentMaximumScore)}',
+                          style: TextStyle(color: p.muted, fontSize: 12)),
                   ],
                 ),
               ),

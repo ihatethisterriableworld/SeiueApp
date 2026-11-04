@@ -6,12 +6,13 @@ import 'rich_document.dart';
 import 'subject_models.dart';
 import 'theme.dart';
 
-const deadlineLabels = ['6小时以内', '6小时到当天', '当天至3天', '3天后', '无截止时间'];
+const deadlineLabels = ['6小时以内', '6小时到当天', '当天后到3天', '3天后', '无截止时间', '已逾期'];
 
 /// Six hours takes priority across midnight; the third bucket ends 72 hours
 /// from now. Local midnight supplies the end-of-today boundary.
 int deadlineBucket(DateTime? due, DateTime now) {
   if (due == null) return 4;
+  if (due.isBefore(now)) return 5;
   if (!due.isAfter(now.add(const Duration(hours: 6)))) return 0;
   final tomorrow = DateTime(now.year, now.month, now.day + 1);
   if (due.isBefore(tomorrow)) return 1;
@@ -26,7 +27,7 @@ class TodosPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller, p = CampusPalette.of(context), now = DateTime.now();
-    final groups = List.generate(5, (_) => <SubjectTask>[]);
+    final groups = List.generate(deadlineLabels.length, (_) => <SubjectTask>[]);
     for (final task in c.todos.where((t) => !t.isCompleted)) {
       groups[deadlineBucket(task.due, now)].add(task);
     }
@@ -48,10 +49,11 @@ class TodosPanel extends StatelessWidget {
           TextButton(onPressed: c.loadTodos, child: const Text('重试')),
         ],
         for (var index = 0; index < groups.length; index++)
-          if (index < 4 || groups[index].isNotEmpty) ...[
+          if (index != 4 || groups[index].isNotEmpty) ...[
             const SizedBox(height: 12),
+            if (index == 5) const Divider(),
             Text('${deadlineLabels[index]} · ${groups[index].length}',
-                style: TextStyle(color: index == 0 ? Colors.red : p.primary,
+                style: TextStyle(color: index == 0 || index == 5 ? Colors.red : p.primary,
                     fontSize: 12, fontWeight: FontWeight.w600)),
             if (groups[index].isEmpty)
               Padding(padding: const EdgeInsets.symmetric(vertical: 8),

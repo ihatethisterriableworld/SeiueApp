@@ -98,6 +98,11 @@ class GradeReport {
       final maximum = numeric(entry.fullScore);
       if (children.isEmpty) {
         visiting.remove(entry.id);
+        // Empty informational/attendance rows have neither score nor maximum.
+        // They contribute nothing; they must not invalidate other graded rows.
+        if (numeric(entry.score) == null && maximum == null) {
+          return (total: 0.0, graded: 0.0);
+        }
         if (maximum == null || maximum < 0) return null;
         return (total: maximum, graded: numeric(entry.score) == null ? 0.0 : maximum);
       }
