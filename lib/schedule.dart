@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'dart:async';
+
 import 'controller.dart';
+import 'todos.dart';
 import 'main.dart' show SmallTag, StatusPanel;
 import 'models.dart';
 import 'theme.dart';
@@ -18,6 +21,19 @@ class ScheduleView extends StatefulWidget {
 
 class _ScheduleViewState extends State<ScheduleView> {
   bool agenda = false;
+  Timer? _deadlineTimer;
+  @override
+  void initState() {
+    super.initState();
+    _deadlineTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+  @override
+  void dispose() {
+    _deadlineTimer?.cancel();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     final c = widget.controller,
@@ -109,31 +125,6 @@ class _ScheduleViewState extends State<ScheduleView> {
                 ),
               ),
               const SizedBox(height: 8),
-              if (c.scheduleError != null)
-                Expanded(
-                  child: StatusPanel(
-                    title: '课表暂时无法加载',
-                    subtitle: c.scheduleError!,
-                    icon: CupertinoIcons.wifi_exclamationmark,
-                    retry: c.expired ? null : c.loadSchedule,
-                  ),
-                )
-              else if (c.scheduleLoading)
-                const Expanded(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (lessons.isEmpty)
-                Expanded(
-                  child: StatusPanel(
-                    title: query.isEmpty ? '这一周暂无课程' : '没有找到相关课程',
-                    subtitle: query.isEmpty
-                        ? '换一周看看，或刷新获取最新课表。'
-                        : '试试课程名称、教师或教室。',
-                    icon: CupertinoIcons.calendar,
-                    retry: query.isEmpty ? c.loadSchedule : null,
-                  ),
-                )
-              else
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,7 +137,16 @@ class _ScheduleViewState extends State<ScheduleView> {
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: p.line),
                           ),
-                          child: agenda || compact
+                          child: c.scheduleError != null
+                              ? StatusPanel(
+                                  title: '????????',
+                                  subtitle: c.scheduleError!,
+                                  icon: CupertinoIcons.wifi_exclamationmark,
+                                  retry: c.expired ? null : c.loadSchedule,
+                                )
+                              : c.scheduleLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : agenda || compact
                               ? _Agenda(controller: c, lessons: lessons)
                               : _WeekGrid(controller: c, lessons: lessons),
                         ),
@@ -625,6 +625,10 @@ class _TodayPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          TodosPanel(controller: c),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 16),
           Text(
             sameDay(day, now) ? '今天的安排' : '${day.month}月${day.day}日安排',
             style: Theme.of(context).textTheme.titleMedium,

@@ -494,6 +494,18 @@ class _Grades extends StatelessWidget {
                   ),
                 ],
               ),
+              Tooltip(
+                message: '当前得分 ÷ 总分 × 100%；缺少数值或总分为零时不计算',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('当前得分率', style: TextStyle(color: p.muted, fontSize: 12)),
+                    const SizedBox(height: 8),
+                    Text(report.currentScoreRateText,
+                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
               SmallTag(report.status == 'published' ? '已发布' : '未发布'),
               if (report.level.isNotEmpty) Text('等级 ${report.level}'),
               if (report.review.isNotEmpty) Text(report.review),

@@ -82,6 +82,16 @@ class GradeReport {
   });
   final String score, fullScore, status, level, review;
   final List<GradeEntry> entries;
+  /// The published current score divided by its maximum, without summing
+  /// hierarchical entries (which would count category scores twice).
+  double? get currentScoreRate {
+    final earned = double.tryParse(score), maximum = double.tryParse(fullScore);
+    if (earned == null || maximum == null || !earned.isFinite ||
+        !maximum.isFinite || maximum <= 0) return null;
+    return earned / maximum * 100;
+  }
+  String get currentScoreRateText => currentScoreRate == null
+      ? '—' : '${currentScoreRate!.toStringAsFixed(2)}%';
   factory GradeReport.fromJson(Json assessment, List<Json> scores) {
     final grade = jsonMap(assessment['grade']);
     final byItem = {for (final score in scores) field(score['item_id']): score};
@@ -179,6 +189,8 @@ class SubjectTask {
     attachments: jsonRows(json['attachments']),
     subTasks: jsonRows(json['sub_tasks']).map(SubjectTask.fromJson).toList(),
   );
+  bool get isCompleted => const ['done', 'finished', 'achieved', 'submitted']
+      .contains(status);
   String get statusLabel => switch (status) {
     'done' || 'finished' || 'achieved' || 'submitted' => '已完成',
     'read' => '已查看',

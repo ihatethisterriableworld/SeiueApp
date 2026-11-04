@@ -480,7 +480,7 @@ class SeiueApi {
   }
 
   Future<SubjectPage<SubjectTask>> subjectTasks(
-    CampusSubject subject, {
+    CampusSubject? subject, {
     int page = 1,
   }) async {
     final response = await _request(
@@ -489,7 +489,7 @@ class SeiueApi {
         '/chalk/task/v2/assignees/${session!.identity.id}/assigned-tasks',
         {
           'domain': 'group',
-          'domain_biz_id_in': subject.groupId,
+          if (subject != null) 'domain_biz_id_in': subject.groupId,
           'general_status_in': 'published,finished',
           'parent_task_id_is_empty': 'true',
           'expand': 'creator,outline,sub_tasks',

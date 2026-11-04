@@ -94,6 +94,40 @@ class CampusController extends ChangeNotifier with WidgetsBindingObserver {
   DateTime? scheduleSynced;
   List<Lesson> lessons = [];
   final notices = InboxState(), system = InboxState();
+  List<SubjectTask> todos = [];
+  bool todosLoading = false;
+  String? todosError;
+  int _todosGeneration = 0;
+  Future<void> loadTodos() async {
+    if (!signedIn || expired || todosLoading) return;
+    if (demo) { todos = []; _emit(); return; }
+    final auth = _authGeneration, generation = ++_todosGeneration;
+    todosLoading = true;
+    todosError = null;
+    _emit();
+    try {
+      final tasks = <String, SubjectTask>{};
+      var page = 1;
+      while (true) {
+        final result = await api.subjectTasks(null, page: page);
+        if (!_current(auth) || generation != _todosGeneration) return;
+        for (final task in result.items) { tasks[task.id] = task; }
+        if (!result.hasMore) break;
+        page++;
+      }
+      todos = tasks.values.where((task) => !task.isCompleted).toList();
+    } catch (error) {
+      if (!_current(auth) || generation != _todosGeneration) return;
+      todosError = _errorText(error);
+      _handleError(error);
+    } finally {
+      if (_current(auth) && generation == _todosGeneration) {
+        todosLoading = false;
+        _emit();
+      }
+    }
+  }
+
   bool scheduleLoading = false;
   int _scheduleGeneration = 0, _authGeneration = 0;
   Timer? _timer;
@@ -254,6 +288,10 @@ class CampusController extends ChangeNotifier with WidgetsBindingObserver {
     _scheduleGeneration++;
     images.reset();
     demo = true;
+    _todosGeneration++;
+    todos = [];
+    todosLoading = false;
+    todosError = null;
     approvals.reset(demo: true);
     session = null;
     expired = false;
@@ -438,6 +476,7 @@ class CampusController extends ChangeNotifier with WidgetsBindingObserver {
         await Future.wait([
           loadInbox(false),
           loadInbox(true),
+          loadTodos(),
           syncReminders(),
           if (++_pollCount % 5 == 0) loadSchedule(),
         ]);
@@ -484,6 +523,7 @@ class CampusController extends ChangeNotifier with WidgetsBindingObserver {
       error is CampusException ? error.message : '同步失败，请稍后重试。';
   Future<void> refreshAll() => Future.wait([
     loadSchedule(),
+    loadTodos(),
     loadInbox(false),
     loadInbox(true),
     loadSubjects(),
@@ -491,7 +531,7 @@ class CampusController extends ChangeNotifier with WidgetsBindingObserver {
   ]);
   Future<void> refreshCurrent() async {
     if (destination == Destination.schedule) {
-      await Future.wait([loadSchedule(), syncReminders()]);
+      await Future.wait([loadSchedule(), loadTodos(), syncReminders()]);
     } else if (destination == Destination.approvals) {
       await approvals.load(force: true);
       final record = approvals.selected;
@@ -921,6 +961,10 @@ class CampusController extends ChangeNotifier with WidgetsBindingObserver {
     await notifications.reset().catchError((_) {});
     _timer?.cancel();
     _scheduleGeneration++;
+    _todosGeneration++;
+    todos = [];
+    todosLoading = false;
+    todosError = null;
     notices.generation++;
     system.generation++;
     images.reset();
