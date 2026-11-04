@@ -87,7 +87,9 @@ class GradeReport {
   double? get currentScoreRate {
     final earned = double.tryParse(score), maximum = double.tryParse(fullScore);
     if (earned == null || maximum == null || !earned.isFinite ||
-        !maximum.isFinite || maximum <= 0) return null;
+        !maximum.isFinite || maximum <= 0) {
+      return null;
+    }
     return earned / maximum * 100;
   }
   String get currentScoreRateText => currentScoreRate == null
